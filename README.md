@@ -70,12 +70,9 @@ client.migrate(bugs_list)
 To begin using bugzilla2gitlab, the following list of configuration files is required in the specified `config` directory:
 
 - `defaults.yml`: Core default values used throughout the modules.
-- `user_mappings.yml`: key, value pairs of Bugzilla usernames to GitLab users
 - `component_mappings.yml`: key, value pairs of Bugzilla components to Gitlab labels
 
 Samples of all of these files with documentation for each configuration variable can be found in `tests/test_data/config`.
-
-bugzilla2gitlab creates issues and comments in GitLab with the user accounts specified in `user_mappings.yml`, perserving the integrity of the original Bugzilla commenter. This, however, may not always be possible. In [tests/test_data/config/user_mappings.yml](tests/test_data/config/user_mappings.yml), users with the designation "bugzilla" may have left the organization and therefore not have current GitLab accounts, or might simply be machine users. Comments for such users will be left under a generic "bugzilla" account. bugzilla2gitlab doesn't create any new user accounts. All of the accounts specified in `user_mappings.yml` must already exist in your GitLab installation.
 
 The default table created in the issue description by bugzilla2gitlab looks like this:
 
@@ -103,8 +100,6 @@ Gitlab has a comprehensive and extensively documented API. Here are the main end
 - [Changing an issue status](http://doc.gitlab.com/ce/api/issues.html#edit-issue)
 - [Getting user ids](http://doc.gitlab.com/ce/api/users.html#for-admins)
 
-Calls to the Gitlab API must be made with an administrator private token in order to [impersonate other users](http://doc.gitlab.com/ce/api/#sudo).
-
 ### Bugzilla
 
 This program relies on being able to fetch bug data by simply appending `&ctype=xml` to the end of the bugzilla bug url, and then parsing the resultant xml. If this trick doesn't work on your bugzilla installation, then bugzilla2gitlab probably won't work for you.
@@ -112,8 +107,6 @@ This program relies on being able to fetch bug data by simply appending `&ctype=
 ## Caveats
 
 Every comment or mention in GitLab typically sends a notification. This is true even for comments/issues created programatically. To avoid users inboxes being flooded with meaningless email notifications and avoid overwhelming your SMTP servers, GitLab users should disable all email notifications (global and group-specific) just prior to the running of this script. This can be done through the [gitlab UI](https://gitlab.com/profile/notifications).
-
-Further, this tools requires Gitlab [sudo](https://docs.gitlab.com/ce/api/#sudo). If you need a tool that works without sudo, take a look at [FreeDesktop's migration tool](https://gitlab.freedesktop.org/freedesktop/bztogl).
 
 ## Demo
 

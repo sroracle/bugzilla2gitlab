@@ -52,20 +52,16 @@ class Issue(object):
     '''
     The issue model
     '''
-    required_fields = ["sudo", "title", "description"]
-    data_fields = ["sudo", "created_at", "title", "description", "assignee_ids", "milestone_id",
+    required_fields = ["title", "description"]
+    data_fields = ["created_at", "title", "description", "assignee_ids", "milestone_id",
                    "labels"]
 
     def __init__(self, bugzilla_fields):
         self.headers = conf.default_headers
-        validate_user(bugzilla_fields["reporter"])
-        validate_user(bugzilla_fields["assigned_to"])
         self.load_fields(bugzilla_fields)
 
     def load_fields(self, fields):
         self.title = fields["short_desc"]
-        self.sudo = conf.gitlab_users[conf.bugzilla_users[fields["reporter"]]]
-        self.assignee_ids = [conf.gitlab_users[conf.bugzilla_users[fields["assigned_to"]]]]
         self.created_at = format_utc(fields["creation_ts"])
         self.status = fields["bug_status"]
         self.create_labels(fields["component"], fields.get("op_sys"), fields.get("keywords"))
@@ -163,21 +159,9 @@ class Issue(object):
         if attachments:
             self.description += markdown_table_row("Attachments", ", ".join(attachments))
 
-        if ext_description:
-            # for situations where the reporter is a generic or old user, specify the original
-            # reporter in the description body
-            if fields["reporter"] == conf.bugzilla_auto_reporter:
-                # try to get reporter email from the body
-                description, part, user_data = ext_description.rpartition("Submitter was ")
-                # partition found matching string
-                if part:
-                    regex = r"^(\S*)\s?.*$"
-                    email = re.match(regex, user_data, flags=re.M).group(1)
-                    self.description += markdown_table_row("Reporter", email)
-            # Add original reporter to the markdown table
-            elif conf.bugzilla_users[fields["reporter"]] == conf.gitlab_misc_user:
-                self.description += markdown_table_row("Reporter", fields["reporter"])
+        self.description += markdown_table_row("Reporter", fields["reporter"])
 
+        if ext_description:
             self.description += ext_description
 
     def update_attachments(self, reporter, comment, attachments):
@@ -202,7 +186,6 @@ class Issue(object):
         self.validate()
         url = "{}/projects/{}/issues".format(conf.gitlab_base_url, conf.gitlab_project_id)
         data = {k: v for k, v in self.__dict__.items() if k in self.data_fields}
-        self.headers["sudo"] = self.sudo
 
         response = _perform_request(url, "post", headers=self.headers, data=data, json=True,
                                     dry_run=conf.dry_run)
@@ -220,7 +203,6 @@ class Issue(object):
         data = {
             "state_event": "close",
         }
-        self.headers["sudo"] = self.sudo
 
         _perform_request(url, "put", headers=self.headers, data=data, dry_run=conf.dry_run)
 
@@ -230,25 +212,18 @@ class Comment(object):
     The comment model
     '''
 
-    required_fields = ["sudo", "body", "issue_id"]
+    required_fields = ["body", "issue_id"]
     data_fields = ["created_at", "body"]
 
     def __init__(self, bugzilla_fields):
         self.headers = conf.default_headers
-        validate_user(bugzilla_fields["who"])
         self.load_fields(bugzilla_fields)
 
     def load_fields(self, fields):
-        self.sudo = conf.gitlab_users[conf.bugzilla_users[fields["who"]]]
-        # if unable to comment as the original user, put username in comment body
         self.created_at = format_utc(fields["bug_when"])
-        if conf.bugzilla_users[fields["who"]] == conf.gitlab_misc_user:
-            self.body = "By {} on {}\n\n".format(fields["who"],
-                                                 format_datetime(fields["bug_when"],
-                                                 conf.datetime_format_string))
-        else:
-            self.body = format_datetime(fields["bug_when"], conf.datetime_format_string)
-            self.body += "\n\n"
+        self.body = "By {} on {}\n\n".format(fields["who"],
+                                             format_datetime(fields["bug_when"],
+                                             conf.datetime_format_string))
 
         # if this comment is actually an attachment, upload the attachment and add the
         # markdown to the comment body
@@ -267,7 +242,6 @@ class Comment(object):
 
     def save(self):
         self.validate()
-        self.headers["sudo"] = self.sudo
         url = "{}/projects/{}/issues/{}/notes".format(conf.gitlab_base_url, conf.gitlab_project_id,
                                                       self.issue_id)
         data = {k: v for k, v in self.__dict__.items() if k in self.data_fields}
@@ -332,8 +306,3 @@ class Attachment(object):
 
         return u"[{}]({})".format(self.file_description, upload_link)
 
-
-def validate_user(bugzilla_user):
-    if bugzilla_user not in conf.bugzilla_users:
-        raise Exception("Bugzilla user `{}` not found in user_mappings.yml. "
-                        "Please add them before continuing.".format(bugzilla_user))

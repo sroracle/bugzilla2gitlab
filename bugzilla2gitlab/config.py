@@ -6,9 +6,8 @@ import yaml
 from .utils import _perform_request
 
 Config = namedtuple('Config', ["gitlab_base_url", "gitlab_project_id",
-                               "bugzilla_base_url", "bugzilla_user", "bugzilla_auto_reporter",
+                               "bugzilla_base_url", "bugzilla_user",
                                "bugzilla_closed_states", "default_headers", "component_mappings",
-                               "bugzilla_users", "gitlab_users", "gitlab_misc_user",
                                "default_gitlab_labels", "datetime_format_string",
                                "map_operating_system", "map_keywords", "keywords_to_skip",
                                "map_milestones", "milestones_to_skip", "gitlab_milestones",
@@ -18,8 +17,6 @@ Config = namedtuple('Config', ["gitlab_base_url", "gitlab_project_id",
 def get_config(path):
     configuration = {}
     configuration.update(_load_defaults(path))
-    configuration.update(_load_user_id_cache(path, configuration["gitlab_base_url"],
-                                             configuration["default_headers"]))
     if configuration["map_milestones"]:
         configuration.update(
             _load_milestone_id_cache(configuration["gitlab_project_id"],
@@ -42,30 +39,6 @@ def _load_defaults(path):
             defaults[key] = config[key]
 
     return defaults
-
-
-def _load_user_id_cache(path, gitlab_url, gitlab_headers):
-    '''
-    Load cache of GitLab usernames and ids
-    '''
-    print("Loading user cache...")
-    with open(os.path.join(path, "user_mappings.yml")) as f:
-        bugzilla_mapping = yaml.safe_load(f)
-
-    gitlab_users = {}
-    for user in bugzilla_mapping:
-        gitlab_username = bugzilla_mapping[user]
-        uid = _get_user_id(gitlab_username, gitlab_url, gitlab_headers)
-        gitlab_users[gitlab_username] = str(uid)
-
-    mappings = {}
-    # bugzilla_username: gitlab_username
-    mappings["bugzilla_users"] = bugzilla_mapping
-
-    # gitlab_username: gitlab_userid
-    mappings["gitlab_users"] = gitlab_users
-
-    return mappings
 
 
 def _load_milestone_id_cache(project_id, gitlab_url, gitlab_headers):

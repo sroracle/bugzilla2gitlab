@@ -10,9 +10,7 @@ gitlab_base_url: "https://git.example.com/api/v4"
 # The gitlab project id
 gitlab_project_id: 5
 
-# The private token of the gitlab Administrator. This program needs GitLab sudo to run.
-# Read more about sudo here:
-# http://docs.gitlab.com/ce/api/#sudo
+# The private token of the gitlab Administrator or project/group owner.
 gitlab_private_token: "SUPERSECRETTOKEN"
 
 # bugzilla base url without trailing slash
@@ -25,18 +23,11 @@ bugzilla_user:
 # The way to format datetime strings in the gitlab issue description and comment body.
 datetime_format_string: "%b %d, %Y %H:%M"
 
-# Generic bugzilla user that bug reporting forms would create bugs as. Performs better formatting for the Issue description
-# Optional
-bugzilla_auto_reporter: "webreporter"
-
 # Bugzilla states that close the issue in gitlab
 bugzilla_closed_states:
     - "RESOLVED"
     - "VERIFIED"
     - "CLOSED"
-
-# Generic gitLab user for misc or old bugzilla users that don't have GitLab accounts
-gitlab_misc_user: "bugzilla"
 
 # Default label(s) to add to all migrated bugs
 # Optional
