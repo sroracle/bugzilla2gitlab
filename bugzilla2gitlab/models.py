@@ -54,13 +54,14 @@ class Issue(object):
     '''
     required_fields = ["title", "description"]
     data_fields = ["created_at", "title", "description", "assignee_ids", "milestone_id",
-                   "labels"]
+                   "labels", "iid"]
 
     def __init__(self, bugzilla_fields):
         self.headers = conf.default_headers
         self.load_fields(bugzilla_fields)
 
     def load_fields(self, fields):
+        self.iid = fields["bug_id"]
         self.title = fields["short_desc"]
         self.created_at = format_utc(fields["creation_ts"])
         self.updated_at = format_utc(fields["delta_ts"])
