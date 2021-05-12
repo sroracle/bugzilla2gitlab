@@ -20,9 +20,6 @@ bugzilla_base_url: "https://landfill.bugzilla.org/bugzilla-5.0-branch"
 # when not empty, you are prompted for password once upon script startup
 bugzilla_user:
 
-# The way to format datetime strings in the gitlab issue description and comment body.
-datetime_format_string: "%b %d, %Y %H:%M"
-
 # Bugzilla states that close the issue in gitlab
 bugzilla_closed_states:
     - "RESOLVED"

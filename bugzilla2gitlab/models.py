@@ -1,6 +1,6 @@
 import re
 
-from .utils import _perform_request, format_datetime, format_utc, markdown_table_row
+from .utils import _perform_request, format_utc, markdown_table_row
 
 conf = None
 
@@ -124,14 +124,11 @@ class Issue(object):
             self.description += markdown_table_row("Bugzilla Link",
                                                    "[{}]({})".format(bug_id, link))
 
-        formatted_dt = format_datetime(fields["creation_ts"], conf.datetime_format_string)
-        self.description += markdown_table_row("Created on", formatted_dt)
+        self.description += markdown_table_row("Created on", fields["creation_ts"])
 
         if fields.get("resolution"):
             self.description += markdown_table_row("Resolution", fields["resolution"])
-            self.description += markdown_table_row("Resolved on",
-                                                   format_datetime(fields["delta_ts"],
-                                                                   conf.datetime_format_string))
+            self.description += markdown_table_row("Resolved on", fields["delta_ts"])
 
         self.description += markdown_table_row("Version", fields.get("version"))
         self.description += markdown_table_row("OS", fields.get("op_sys"))
@@ -221,9 +218,7 @@ class Comment(object):
 
     def load_fields(self, fields):
         self.created_at = format_utc(fields["bug_when"])
-        self.body = "By {} on {}\n\n".format(fields["who"],
-                                             format_datetime(fields["bug_when"],
-                                             conf.datetime_format_string))
+        self.body = "By {} on {}\n\n".format(fields["who"], fields["bug_when"])
 
         # if this comment is actually an attachment, upload the attachment and add the
         # markdown to the comment body

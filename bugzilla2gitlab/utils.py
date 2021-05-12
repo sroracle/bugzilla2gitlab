@@ -46,14 +46,6 @@ def markdown_table_row(key, value):
     return u"| {} | {} |\n".format(key, value)
 
 
-def format_datetime(datestr, formatting):
-    '''
-    Apply a dateime format to a string, according to the formatting string.
-    '''
-    parsed_dt = dateutil.parser.parse(datestr)
-    return parsed_dt.strftime(formatting)
-
-
 def format_utc(datestr):
     '''
     Convert dateime string to UTC format recognized by gitlab.
