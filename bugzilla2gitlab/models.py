@@ -63,6 +63,7 @@ class Issue(object):
     def load_fields(self, fields):
         self.title = fields["short_desc"]
         self.created_at = format_utc(fields["creation_ts"])
+        self.updated_at = format_utc(fields["delta_ts"])
         self.status = fields["bug_status"]
         self.create_labels(fields["keywords"])
         milestone = fields["target_milestone"]
@@ -181,6 +182,7 @@ class Issue(object):
                                                 self.id)
         data = {
             "state_event": "close",
+            "updated_at": self.updated_at,
         }
 
         _perform_request(url, "put", headers=self.headers, data=data, dry_run=conf.dry_run)
