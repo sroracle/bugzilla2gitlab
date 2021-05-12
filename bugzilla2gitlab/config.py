@@ -1,5 +1,6 @@
 from collections import namedtuple
 import os
+import sys
 
 import yaml
 
@@ -45,7 +46,7 @@ def _load_milestone_id_cache(project_id, gitlab_url, gitlab_headers):
     '''
     Load cache of GitLab milestones and ids
     '''
-    print("Loading milestone cache...")
+    print("Loading milestone cache...", file=sys.stderr)
 
     gitlab_milestones = {}
     url = "{}/projects/{}/milestones".format(gitlab_url, project_id)

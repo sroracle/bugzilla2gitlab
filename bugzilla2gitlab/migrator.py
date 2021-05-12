@@ -1,3 +1,5 @@
+import sys
+
 from .config import get_config
 from .models import IssueThread
 from .utils import bugzilla_login, get_bugzilla_bug, validate_list
@@ -21,7 +23,7 @@ class Migrator(object):
         '''
         Migrate a single bug from Bugzilla to GitLab.
         '''
-        print("Migrating bug {}".format(bugzilla_bug_id))
+        print("Migrating bug {}".format(bugzilla_bug_id), file=sys.stderr)
         fields = get_bugzilla_bug(self.conf.bugzilla_base_url, bugzilla_bug_id)
         issue_thread = IssueThread(self.conf, fields)
         issue_thread.save()

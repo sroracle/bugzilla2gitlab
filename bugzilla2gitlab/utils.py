@@ -1,3 +1,4 @@
+import sys
 from getpass import getpass
 
 import dateutil.parser
@@ -15,7 +16,7 @@ def _perform_request(url, method, data={}, params={}, headers={}, files={}, json
     '''
     if dry_run and method != "get":
         msg = "{} {} dry_run".format(url, method)
-        print(msg)
+        print(msg, file=sys.stderr)
         return 0
 
     global session
@@ -115,7 +116,7 @@ def bugzilla_login(url, user):
         if response.cookies:
             break
         else:
-            print("Failed to log in (attempt {})".format(attempt + 1))
+            print("Failed to log in (attempt {})".format(attempt + 1), file=sys.stderr)
     else:
         raise Exception("Failed to log in after {} attempts".format(max_login_attempts))
 
