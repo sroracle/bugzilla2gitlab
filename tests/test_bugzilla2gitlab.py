@@ -43,12 +43,6 @@ def test_config(monkeypatch):
     assert isinstance(conf.default_headers, dict)
     assert "private-token" in conf.default_headers
 
-    # conf.compnent mappings is a dictionary
-    assert isinstance(conf.component_mappings, dict)
-
-    # conf.map_operating_system is a boolean value
-    assert isinstance(conf.map_operating_system, bool)
-
     # conf.map_keywords is a boolean value
     assert isinstance(conf.map_keywords, bool)
 

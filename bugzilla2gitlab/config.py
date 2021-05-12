@@ -8,9 +8,9 @@ from .utils import _perform_request
 
 Config = namedtuple('Config', ["gitlab_base_url", "gitlab_project_id",
                                "bugzilla_base_url", "bugzilla_user",
-                               "bugzilla_closed_states", "default_headers", "component_mappings",
+                               "bugzilla_closed_states", "default_headers",
                                "default_gitlab_labels",
-                               "map_operating_system", "map_keywords", "keywords_to_skip",
+                               "map_keywords", "keywords_to_skip",
                                "map_milestones", "milestones_to_skip", "gitlab_milestones",
                                "dry_run", "include_bugzilla_link"])
 
@@ -23,7 +23,6 @@ def get_config(path):
             _load_milestone_id_cache(configuration["gitlab_project_id"],
                                      configuration["gitlab_base_url"],
                                      configuration["default_headers"]))
-    configuration.update(_load_component_mappings(path))
     return Config(**configuration)
 
 
@@ -65,10 +64,3 @@ def _get_user_id(username, gitlab_url, headers):
         return result[0]["id"]
     else:
         raise Exception("No gitlab account found for user {}".format(username))
-
-
-def _load_component_mappings(path):
-    with open(os.path.join(path, "component_mappings.yml")) as f:
-        component_mappings = yaml.safe_load(f)
-
-    return {"component_mappings": component_mappings}

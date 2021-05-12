@@ -70,7 +70,6 @@ client.migrate(bugs_list)
 To begin using bugzilla2gitlab, the following list of configuration files is required in the specified `config` directory:
 
 - `defaults.yml`: Core default values used throughout the modules.
-- `component_mappings.yml`: key, value pairs of Bugzilla components to Gitlab labels
 
 Samples of all of these files with documentation for each configuration variable can be found in `tests/test_data/config`.
 

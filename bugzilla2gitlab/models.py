@@ -64,28 +64,16 @@ class Issue(object):
         self.title = fields["short_desc"]
         self.created_at = format_utc(fields["creation_ts"])
         self.status = fields["bug_status"]
-        self.create_labels(fields["component"], fields.get("op_sys"), fields.get("keywords"))
+        self.create_labels(fields["keywords"])
         milestone = fields["target_milestone"]
         if conf.map_milestones and milestone not in conf.milestones_to_skip:
             self.create_milestone(milestone)
         self.create_description(fields)
 
-    def create_labels(self, component, operating_system, keywords):
-        '''
-        Creates 4 types of labels: default labels listed in the configuration, component labels,
-        operating system labels, and keyword labels.
-        '''
+    def create_labels(self, keywords):
         labels = []
         if conf.default_gitlab_labels:
             labels.extend(conf.default_gitlab_labels)
-
-        component_label = conf.component_mappings.get(component)
-        if component_label:
-            labels.append(component_label)
-
-        # Do not create a label if the OS is other. That is a meaningless label.
-        if conf.map_operating_system and operating_system and operating_system != "Other":
-            labels.append(operating_system)
 
         if conf.map_keywords and keywords:
             # Input: payload of XML element like this: <keywords>SECURITY, SUPPORT</keywords>
