@@ -106,12 +106,6 @@ class Issue(object):
         self.description = markdown_table_row("", "")
         self.description += markdown_table_row("---", "---")
 
-        if conf.include_bugzilla_link:
-            bug_id = fields["bug_id"]
-            link = "{}/show_bug.cgi?id={}".format(conf.bugzilla_base_url, bug_id)
-            self.description += markdown_table_row("Bugzilla Link",
-                                                   "[{}]({})".format(bug_id, link))
-
         self.description += markdown_table_row("Created on", fields["creation_ts"])
 
         if fields.get("resolution"):
