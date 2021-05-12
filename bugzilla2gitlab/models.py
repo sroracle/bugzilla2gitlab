@@ -140,9 +140,18 @@ class Issue(object):
             "Importance",
             fields.findtext("priority") + " / " + fields.findtext("bug_severity"),
         )
+        package = fields.findtext("cf_package")
+        if package:
+            self.description += markdown_table_row("Package(s)", package)
         url = fields.findtext("bug_file_loc")
         if url:
             self.description += markdown_table_row("URL", url)
+        blocks = [f"https://bts.adelielinux.org/show_bug.cgi?id={i.text}" for i in fields.findall("blocked")]
+        if any(blocks):
+            self.description += markdown_table_row("Blocks", "<br>".join(blocks))
+        depends = [f"https://bts.adelielinux.org/show_bug.cgi?id={i.text}" for i in fields.findall("dependson")]
+        if any(depends):
+            self.description += markdown_table_row("Depends on", "<br>".join(depends))
         see_also = [i.text for i in fields.findall("see_also")]
         if any(see_also):
             self.description += markdown_table_row("See also", "<br>".join(see_also))
@@ -181,6 +190,8 @@ class Issue(object):
             return
 
         self.id = response["iid"]
+        print(f"https://bts.adelielinux.org/show_bug.cgi?id={self.iid},https://git.adelielinux.org/adelie-infra/infra-docs/-/issues/{self.id}")
+        sys.stdout.flush()
 
     def close(self):
         url = "{}/projects/{}/issues/{}".format(conf.gitlab_base_url, conf.gitlab_project_id,

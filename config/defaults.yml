@@ -1,0 +1,44 @@
+---
+# If true, don't execute any `put` or `post` requests.
+# dry_run=true still executes get requests though.
+# set to true for debugging or development.
+dry_run: false
+
+# gitlab api base url without trailing slash
+gitlab_base_url: "https://git.adelielinux.org/api/v4"
+
+# The gitlab project id
+gitlab_project_id: 174
+
+# The private token of the gitlab Administrator or project/group owner.
+gitlab_private_token: "SUPERSECRETTOKEN"
+
+# bugzilla base url without trailing slash
+bugzilla_base_url: "https://bts.adelielinux.org"
+
+# bugzilla user, set to an empty string when anonymous access is allowed
+# when not empty, you are prompted for password once upon script startup
+bugzilla_user:
+
+# Bugzilla states that close the issue in gitlab
+bugzilla_closed_states:
+    - "RESOLVED"
+    - "VERIFIED"
+    - "CLOSED"
+
+# Default label(s) to add to all migrated bugs
+# Optional
+default_gitlab_labels:
+    - "bugzilla"
+
+
+# Set to true to map bugzilla keywords to GitLab
+map_keywords: true
+
+# Do not map these bugzilla keywords to GitLab
+keywords_to_skip: []
+# Set to true to map bugzilla milestones to GitLab
+map_milestones: true
+
+# Do not map these bugzilla milestones to GitLab
+milestones_to_skip: []
