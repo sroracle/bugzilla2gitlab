@@ -56,30 +56,9 @@ def format_utc(datestr):
 
 
 def get_bugzilla_bug(bugzilla_url, bug_id):
-    '''
-    Read bug XML, return all fields and values in a dictionary.
-    '''
     bug_xml = _fetch_bug_content(bugzilla_url, bug_id)
     tree = ElementTree.fromstring(bug_xml)
-
-    bug_fields = {
-        "long_desc": [],
-        "attachment": [],
-        "cc": [],
-    }
-    for bug in tree:
-        for field in bug:
-            if field.tag in ("long_desc", "attachment"):
-                new = {}
-                for data in field:
-                    new[data.tag] = data.text
-                bug_fields[field.tag].append(new)
-            elif field.tag == "cc":
-                bug_fields[field.tag].append(field.text)
-            else:
-                bug_fields[field.tag] = field.text
-
-    return bug_fields
+    return tree.find("bug")
 
 
 def _fetch_bug_content(url, bug_id):

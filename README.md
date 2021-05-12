@@ -77,13 +77,18 @@ The default table created in the issue description by bugzilla2gitlab looks like
 
 |  |  |
 | --- | --- |
-| Bugzilla Link | [570755](https://bugzilla.mozilla.org/show_bug.cgi?id=570755) |
-| Created on | Jun 08, 2010 10:25 |
-| Version | unspecified |
-| OS | All |
-| Architecture | All |
-| Attachments | [a_PHP_play_script_to_demonstrate_how_the_browser_requests_videos](/uploads/e521dd042dc4cfd3d49151d87dee8058/a_PHP_play_script_to_demonstrate_how_the_browser_requests_videos) |
-| Reporter | mozilla |
+| Bugzilla ID | 1 |
+| Alias(es) | python |
+| Reporter | A. Wilcox (awilfox) |
+| Assignee | A. Wilcox (awilfox) |
+| Reported | 2016-04-16 13:55:07 -0500 |
+| Modified | 2016-04-17 15:19:20 -0500 |
+| Status | RESOLVED FIXED |
+| Version | 1.0-ALPHA1 |
+| Hardware | Adélie Linux / Intel x86 (64-bit) |
+| Importance | Normal / normal |
+| URL | https://example.com |
+| See also | https://bugzilla.example.com/show_bug.cgi?id=1 |
 
 To modify this table, take a look at `create_description` in [models.py](/bugzilla2gitlab/models.py#L92).
 
@@ -106,6 +111,8 @@ This program relies on being able to fetch bug data by simply appending `&ctype=
 ## Caveats
 
 Every comment or mention in GitLab typically sends a notification. This is true even for comments/issues created programatically. To avoid users inboxes being flooded with meaningless email notifications and avoid overwhelming your SMTP servers, GitLab users should disable all email notifications (global and group-specific) just prior to the running of this script. This can be done through the [gitlab UI](https://gitlab.com/profile/notifications).
+
+The script attempts to import issues into Gitlab using the same timestamp and bug numbers as returned by Bugzilla. However, this will only work if the Gitlab user performing the API calls has administrator access, or has group/project ownership. Otherwise, this information will be silently lost. Additionally, it is unknown what happens when there are conflicting issue numbers in Gitlab already, so it's best to start with no existing issues.
 
 ## Demo
 

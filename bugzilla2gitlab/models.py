@@ -1,8 +1,15 @@
+import base64
 import re
+import sys
 
 from .utils import _perform_request, format_utc, markdown_table_row
 
 conf = None
+
+
+def name_or_text(fields, tag):
+    tag = fields.find(tag)
+    return tag.get("name") or tag.text
 
 
 class IssueThread(object):
@@ -28,9 +35,8 @@ class IssueThread(object):
         from the original reporter. What remains below should be a list of genuine comments.
         '''
 
-        for comment_fields in fields["long_desc"]:
-            if comment_fields.get("thetext"):
-                self.comments.append(Comment(comment_fields))
+        for i, comment in enumerate(fields.findall("long_desc")):
+            self.comments.append(Comment(i + 1, fields, comment))
 
     def save(self):
         '''
@@ -61,13 +67,13 @@ class Issue(object):
         self.load_fields(bugzilla_fields)
 
     def load_fields(self, fields):
-        self.iid = fields["bug_id"]
-        self.title = fields["short_desc"]
-        self.created_at = format_utc(fields["creation_ts"])
-        self.updated_at = format_utc(fields["delta_ts"])
-        self.status = fields["bug_status"]
-        self.create_labels(fields["keywords"])
-        milestone = fields["target_milestone"]
+        self.iid = fields.findtext("bug_id")
+        self.title = fields.findtext("short_desc")
+        self.created_at = format_utc(fields.findtext("creation_ts"))
+        self.updated_at = format_utc(fields.findtext("delta_ts"))
+        self.status = fields.findtext("bug_status")
+        self.create_labels(fields.findtext("keywords"))
+        milestone = fields.findtext("target_milestone")
         if conf.map_milestones and milestone not in conf.milestones_to_skip:
             self.create_milestone(milestone)
         self.create_description(fields)
@@ -108,53 +114,51 @@ class Issue(object):
         self.description = markdown_table_row("", "")
         self.description += markdown_table_row("---", "---")
 
-        self.description += markdown_table_row("Created on", fields["creation_ts"])
+        self.description += markdown_table_row("Bugzilla ID", self.iid)
+        aliases = [i.text for i in fields.findall("alias")]
+        if any(aliases):
+            self.description += markdown_table_row("Alias(es)", ", ".join(aliases))
 
-        if fields.get("resolution"):
-            self.description += markdown_table_row("Resolution", fields["resolution"])
-            self.description += markdown_table_row("Resolved on", fields["delta_ts"])
+        reporter = name_or_text(fields, "reporter")
+        self.description += markdown_table_row("Reporter", reporter)
+        assignee = name_or_text(fields, "assigned_to")
+        if assignee:
+            self.description += markdown_table_row("Assignee", assignee)
+        self.description += markdown_table_row("Reported", fields.findtext("creation_ts"))
+        self.description += markdown_table_row("Modified", fields.findtext("delta_ts"))
+        self.description += markdown_table_row(
+            "Status",
+            fields.findtext("bug_status") + " " + fields.findtext("resolution"),
+        )
 
-        self.description += markdown_table_row("Version", fields.get("version"))
-        self.description += markdown_table_row("OS", fields.get("op_sys"))
-        self.description += markdown_table_row("Architecture", fields.get("rep_platform"))
+        self.description += markdown_table_row("Version", fields.findtext("version"))
+        self.description += markdown_table_row(
+            "Hardware",
+            fields.findtext("op_sys") + " / " + fields.findtext("rep_platform"),
+        )
+        self.description += markdown_table_row(
+            "Importance",
+            fields.findtext("priority") + " / " + fields.findtext("bug_severity"),
+        )
+        url = fields.findtext("bug_file_loc")
+        if url:
+            self.description += markdown_table_row("URL", url)
+        see_also = [i.text for i in fields.findall("see_also")]
+        if any(see_also):
+            self.description += markdown_table_row("See also", "<br>".join(see_also))
 
-        # add first comment to the issue description
-        attachments = []
-        to_delete = []
-        comment0 = fields["long_desc"][0]
-        if (fields["reporter"] == comment0["who"] and comment0["thetext"]):
-            ext_description += "\n## Extended Description \n"
-            ext_description += "\n\n".join(re.split("\n+", comment0["thetext"]))
-            self.update_attachments(fields["reporter"], comment0, attachments)
-            del fields["long_desc"][0]
-
-        for i in range(0, len(fields["long_desc"])):
-            comment = fields["long_desc"][i]
-            if self.update_attachments(fields["reporter"], comment, attachments):
-                to_delete.append(i)
-
-        # delete comments that have already added to the issue description
-        for i in reversed(to_delete):
-            del fields["long_desc"][i]
-
-        if attachments:
-            self.description += markdown_table_row("Attachments", ", ".join(attachments))
-
-        self.description += markdown_table_row("Reporter", fields["reporter"])
+        comment0 = fields.find("long_desc")
+        if (reporter == name_or_text(comment0, "who") and comment0.findtext("thetext")):
+            ext_description += "\n## Description\n\n"
+            text = comment0.findtext("thetext").split("\n")
+            attachid = comment0.findtext("attachid")
+            if text and text[0].startswith("Created attachment") and attachid:
+                text[0] = Attachment.from_bug(fields, attachid)
+            ext_description += "  \n".join(text)
+            fields.remove(comment0)
 
         if ext_description:
             self.description += ext_description
-
-    def update_attachments(self, reporter, comment, attachments):
-        '''
-        Fetches attachments from comment if authored by reporter.
-        '''
-        if comment.get("attachid") and comment.get("who") == reporter:
-            filename = Attachment.parse_file_description(comment.get("thetext"))
-            attachment_markdown = Attachment(comment.get("attachid"), filename).save()
-            attachments.append(attachment_markdown)
-            return True
-        return False
 
     def validate(self):
         for field in self.required_fields:
@@ -197,22 +201,22 @@ class Comment(object):
     required_fields = ["body", "issue_id"]
     data_fields = ["created_at", "body"]
 
-    def __init__(self, bugzilla_fields):
+    def __init__(self, num, bug, comment):
+        self.num = num
         self.headers = conf.default_headers
-        self.load_fields(bugzilla_fields)
+        self.load_fields(bug, comment)
 
-    def load_fields(self, fields):
-        self.created_at = format_utc(fields["bug_when"])
-        self.body = "By {} on {}\n\n".format(fields["who"], fields["bug_when"])
+    def load_fields(self, bug, fields):
+        self.created_at = format_utc(fields.findtext("bug_when"))
+        who = name_or_text(fields, "who")
+        when = fields.findtext("bug_when")
+        self.body = f"**Comment {self.num} by \"{who}\" on {when}**\n\n"
 
-        # if this comment is actually an attachment, upload the attachment and add the
-        # markdown to the comment body
-        if fields.get("attachid"):
-            filename = Attachment.parse_file_description(fields["thetext"])
-            attachment_markdown = Attachment(fields["attachid"], filename).save()
-            self.body += attachment_markdown
-        else:
-            self.body += fields["thetext"]
+        text = fields.findtext("thetext").split("\n")
+        attachid = fields.findtext("attachid")
+        if text and text[0].startswith("Created attachment") and attachid:
+            text[0] = Attachment.from_bug(bug, attachid)
+        self.body += "  \n".join(text)
 
     def validate(self):
         for field in self.required_fields:
@@ -234,55 +238,29 @@ class Attachment(object):
     '''
     The attachment model
     '''
-    def __init__(self, bugzilla_attachment_id, file_description):
-        self.id = bugzilla_attachment_id
-        self.file_description = file_description
+    def __init__(self, attachment):
+        self.id = attachment.findtext("attachid")
+        self.filename = attachment.findtext("filename")
+        self.obsolete = attachment.get("isobsolete") == "1"
+        data = attachment.find("data")
+        encoding = data.get("encoding")
+        if encoding != "base64":
+            raise ValueError(encoding + " encoding is not supported")
+        self.content = base64.standard_b64decode(data.text)
         self.headers = conf.default_headers
 
-    @classmethod
-    def parse_file_description(cls, comment):
-        regex = r"^Created attachment (\d*)\s?(.*)$"
-        matches = re.match(regex, comment, flags=re.M)
-        if not matches:
-            raise Exception("Failed to match comment string: {}".format(comment))
-        return matches.group(2)
-
-    def parse_file_name(self, headers):
-        # Use real filename to store attachment but descriptive name for issue text
-        if 'Content-disposition' not in headers:
-            raise Exception(u"No file name returned for attachment {}"
-                            .format(self.file_description))
-        # Content-disposition: application/zip; filename="mail_route.zip"
-        regex = r"^.*; filename=\"(.*)\"$"
-        matches = re.match(regex, headers['Content-disposition'], flags=re.M)
-        if not matches:
-            raise Exception("Failed to match file name for string: {}"
-                            .format(headers['Content-disposition']))
-        return matches.group(1)
-
-    def parse_upload_link(self, attachment):
-        if not (attachment and attachment["markdown"]):
-            raise Exception(u"No markdown returned for upload of attachment {}"
-                            .format(self.file_description))
-        # ![mail_route.zip](/uploads/e943e69eb2478529f2f1c7c7ea00fb46/mail_route.zip)
-        regex = r"^!?\[.*\]\((.*)\)$"
-        matches = re.match(regex, attachment["markdown"], flags=re.M)
-        if not matches:
-            raise Exception("Failed to match upload link for string: {}"
-                            .format(attachment["markdown"]))
-        return matches.group(1)
-
     def save(self):
-        url = "{}/attachment.cgi?id={}".format(conf.bugzilla_base_url, self.id)
-        result = _perform_request(url, "get", json=False)
-        filename = self.parse_file_name(result.headers)
-
         url = "{}/projects/{}/uploads".format(conf.gitlab_base_url, conf.gitlab_project_id)
-        f = {"file": (filename, result.content)}
+        f = {"file": (self.filename, self.content)}
         attachment = _perform_request(url, "post", headers=self.headers, files=f, json=True,
                                       dry_run=conf.dry_run)
         # For dry run, nothing is uploaded, so upload link is faked just to let the process continue
-        upload_link = self.file_description if conf.dry_run else self.parse_upload_link(attachment)
+        return "" if conf.dry_run else attachment["url"]
 
-        return u"[{}]({})".format(self.file_description, upload_link)
-
+    @classmethod
+    def from_bug(cls, bug, attachid):
+        attachment = cls(bug.find(f"attachment[attachid='{attachid}']"))
+        attachlink = attachment.save()
+        if attachment.obsolete:
+            return f"**Created ~~[attachment {attachid}]({attachlink})~~**"
+        return f"**Created [attachment {attachid}]({attachlink})**"
